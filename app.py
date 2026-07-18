@@ -6,55 +6,48 @@ import numpy as np
 # ------------------ CONFIGURACIÓN GENERAL ------------------
 st.set_page_config(page_title="Smart Shift Planner | Retail Analytics", layout="wide")
 
-st.title("📊 Optimizador de Cuadrantes (Smart Shift Planner)")
-st.markdown("Herramienta avanzada para Store Managers: Optimización de plantilla, asignación de zonas (Zoning) y cálculo de impacto financiero.")
+st.title("Smart Shift Planner | Retail Analytics")
+st.markdown("Herramienta de optimización de plantilla, asignación de zonas (Zoning) y análisis de impacto financiero para Store Managers.")
 
 # ------------------ GUÍA DIDÁCTICA INICIAL ------------------
-with st.expander("📘 Guía didáctica: cómo interpretar esta herramienta"):
+with st.expander("Fundamentos y guía de interpretación"):
     st.markdown("""
-    ### 🎯 ¿Por qué automatizar la planificación de personal?
-    La asignación manual de turnos genera desequilibrios que se traducen en:
-    - **Pérdida de ventas** cuando falta personal en horas punta (clientes no atendidos).
-    - **Costes innecesarios** cuando sobra personal en horas valle.
-    
-    Un modelo basado en tráfico real y tasa de servicio permite alcanzar un **equilibrio rentable**, maximizando la atención al cliente y controlando el gasto de personal.
-    
-    ### 📊 KPIs clave que vas a manejar
-    - **Clientes asumibles por empleado/hora**: cuántos clientes puede atender eficazmente un empleado en una hora. Este dato varía según el formato de tienda.
-    - **Déficit / Exceso de personal**: diferencia entre el personal óptimo (calculado a partir del tráfico) y el personal realmente programado.
-    - **Fuga de ventas (€)**: clientes que no pueden ser atendidos por falta de personal × tasa de conversión × ticket medio.
-    - **Coste de oportunidad (margen bruto)**: fuga de ventas multiplicada por el % de margen bruto. Muestra el impacto real en la cuenta de resultados.
-    - **ROI de la optimización**: retorno que se obtendría al ajustar la plantilla exactamente a lo necesario.
-    - **Punto de equilibrio de tráfico**: cuántos clientes deben entrar en una hora para que un empleado sea rentable.
-    
-    ### 🏬 Zoning inteligente
-    La herramienta sugiere automáticamente cómo distribuir al personal entre caja, probadores y planta en función del número óptimo de empleados, aplicando criterios de eficiencia operativa.
+    ### ¿Por qué automatizar la planificación de personal?
+    La asignación manual de turnos provoca desequilibrios que se traducen en **pérdida de ventas** (falta de personal en horas punta) y **costes innecesarios** (exceso en horas valle). Un modelo basado en tráfico real y tasa de servicio permite alcanzar un equilibrio rentable, maximizando la atención al cliente y controlando el gasto de personal.
+
+    ### KPIs principales
+    - **Clientes asumibles por empleado/hora:** número de clientes que un empleado puede atender eficazmente en una hora. Varía según el formato de tienda.
+    - **Déficit / Exceso de personal:** diferencia entre el personal óptimo calculado a partir del tráfico y el personal realmente programado.
+    - **Fuga de ventas (€):** clientes que no pueden ser atendidos por falta de personal, multiplicados por la tasa de conversión y el ticket medio.
+    - **Coste de oportunidad (margen bruto):** fuga de ventas ajustada por el margen bruto, mostrando el impacto real en la cuenta de resultados.
+    - **ROI de la optimización:** retorno obtenido al ajustar la plantilla exactamente a lo necesario.
+    - **Punto de equilibrio de tráfico:** tráfico mínimo necesario para que un empleado sea rentable en una hora.
     """)
 
 # ------------------ SELECCIÓN DEL MODO ------------------
-modo = st.radio("🔍 Selecciona el modo de análisis:", ["📅 Diario", "🗓️ Semanal"], horizontal=True)
+modo = st.radio("Modo de análisis:", ["Diario", "Semanal"], horizontal=True)
 
 # ------------------ CARGA DE DATOS ------------------
 col_upload, col_demo = st.columns([2, 1])
 
 with col_upload:
-    if modo == "📅 Diario":
-        uploaded_file = st.file_uploader("Sube el CSV diario (Hora, Trafico_Clientes, Personal_Actual)", type=["csv"])
+    if modo == "Diario":
+        uploaded_file = st.file_uploader("Subir CSV diario (Hora, Trafico_Clientes, Personal_Actual)", type=["csv"])
     else:
-        uploaded_file = st.file_uploader("Sube el CSV semanal (Dia, Hora, Trafico_Clientes, Personal_Actual)", type=["csv"])
+        uploaded_file = st.file_uploader("Subir CSV semanal (Dia, Hora, Trafico_Clientes, Personal_Actual)", type=["csv"])
 
 with col_demo:
     st.markdown("<br>", unsafe_allow_html=True)
-    demo_mode = st.checkbox("🚀 Modo Demo")
+    demo_mode = st.checkbox("Cargar datos de demostración (Modo Demo)")
 
 # ------------------ CARGA DE DATOS ------------------
 df = None
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
-    if modo == "📅 Diario":
+    if modo == "Diario":
         df["Dia"] = "Hoy"
 elif demo_mode:
-    if modo == "📅 Diario":
+    if modo == "Diario":
         datos = {
             "Hora": ["10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00"],
             "Trafico_Clientes": [15, 45, 95, 40, 15, 25, 80, 130, 160, 110, 50, 20],
@@ -81,19 +74,18 @@ elif demo_mode:
 # ------------------ SI HAY DATOS ------------------
 if df is not None:
     # ---------- SIDEBAR: PARÁMETROS ----------
-    st.sidebar.header("⚙️ Parámetros Operativos")
+    st.sidebar.header("Parámetros Operativos")
     clientes_por_empleado = st.sidebar.slider("Clientes asumibles por empleado/hora", 10, 40, 20)
     
-    st.sidebar.header("💰 Parámetros Financieros Básicos")
-    ticket_medio = st.sidebar.number_input("Ticket Medio Estimado (€)", 5.0, 500.0, 25.0, 1.0)
+    st.sidebar.header("Parámetros Financieros Básicos")
+    ticket_medio = st.sidebar.number_input("Ticket Medio Estimado (EUR)", 5.0, 500.0, 25.0, 1.0)
     tasa_conversion = st.sidebar.slider("Tasa de Conversión Esperada (%)", 5, 50, 15) / 100.0
     
-    # --- Parámetros financieros avanzados ---
-    with st.sidebar.expander("💰 Configuración Financiera Avanzada"):
-        coste_laboral_hora = st.number_input("Coste laboral medio por hora (€)", 5.0, 50.0, 12.0, 1.0,
-                                             help="Incluye salario bruto + cotizaciones. Dato de RRHH.")
+    with st.sidebar.expander("Configuración Financiera Avanzada"):
+        coste_laboral_hora = st.number_input("Coste laboral medio por hora (EUR)", 5.0, 50.0, 12.0, 1.0,
+                                             help="Incluye salario bruto y cotizaciones. Dato proporcionado por RRHH.")
         margen_bruto_pct = st.slider("Margen bruto (%)", 30, 90, 60) / 100.0
-        if modo == "📅 Diario":
+        if modo == "Diario":
             horas_presupuesto = st.number_input("Presupuesto máximo de horas/día", 0, 500, 200, 10)
         else:
             horas_presupuesto = st.number_input("Presupuesto máximo de horas/semana", 0, 3000, 1000, 10)
@@ -108,7 +100,6 @@ if df is not None:
     df['Fuga_Ventas_Euros'] = df['Clientes_Excedentes'] * tasa_conversion * ticket_medio
     df['Margen_Perdido'] = df['Fuga_Ventas_Euros'] * margen_bruto_pct
 
-    # Zoning
     def asignar_zonas(personal):
         if personal <= 0: return "Tienda Cerrada"
         if personal == 1: return "1 Multitarea (Caja y Planta)"
@@ -117,13 +108,13 @@ if df is not None:
         return f"2 Caja | 1 Probadores | {int(personal)-3} Planta"
     df['Zoning_Recomendado'] = df['Personal_Optimo'].apply(asignar_zonas)
 
-    # ---------- FUNCIÓN PARA FILTRAR DÍA EN MODO SEMANAL ----------
-    if modo == "🗓️ Semanal":
+    # ---------- SELECCIÓN DE DÍA EN MODO SEMANAL ----------
+    if modo == "Semanal":
         st.markdown("---")
-        st.markdown("### 🗓️ Control Semanal")
+        st.markdown("### Control Semanal")
         total_horas_opt = df['Personal_Optimo'].sum()
-        st.info(f"📋 **Análisis de Capacidad:** El volumen de tráfico requiere un total de **{int(total_horas_opt)} horas de trabajo efectivas** en la semana.")
-        dia_sel = st.selectbox("Selecciona un día para auditar:", df['Dia'].unique())
+        st.info(f"El volumen de tráfico requiere un total de {int(total_horas_opt)} horas de trabajo efectivas distribuidas en la semana.")
+        dia_sel = st.selectbox("Seleccionar día para auditar en detalle:", df['Dia'].unique())
         df_vista = df[df['Dia'] == dia_sel].copy()
     else:
         dia_sel = "Hoy"
@@ -134,11 +125,11 @@ if df is not None:
     fuga_total = df_vista['Fuga_Ventas_Euros'].sum()
     margen_perdido_total = df_vista['Margen_Perdido'].sum()
 
-    st.markdown(f"### 🎯 Resumen Operativo y Financiero ({dia_sel})")
+    st.markdown(f"### Resumen Operativo y Financiero ({dia_sel})")
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Horas de Riesgo", f"{len(df_vista[df_vista['Deficit_Personal'] > 0])} hrs")
     col2.metric("Horas Ineficientes", f"{len(df_vista[df_vista['Deficit_Personal'] < 0])} hrs")
-    col3.metric("Fuga de Ventas Estimada", f"€ {fuga_total:,.2f}", delta="− Pérdida", delta_color="inverse")
+    col3.metric("Fuga de Ventas Estimada", f"EUR {fuga_total:,.2f}", delta="- Pérdida", delta_color="inverse")
     col4.metric("Tráfico Total", f"{df_vista['Trafico_Clientes'].sum()} pax")
 
     # ---------- GRÁFICOS PRINCIPALES ----------
@@ -150,102 +141,80 @@ if df is not None:
         st.plotly_chart(fig1, use_container_width=True)
     with colg2:
         fig2 = px.line(df_vista, x='Hora', y='Fuga_Ventas_Euros', markers=True,
-                       title=f"Fuga de Ventas por Hora (€) – {dia_sel}",
+                       title=f"Fuga de Ventas por Hora (EUR) - {dia_sel}",
                        color_discrete_sequence=['#e67e22'])
         fig2.update_traces(line_shape='spline')
         st.plotly_chart(fig2, use_container_width=True)
 
     # ---------- EXPANDER: COSTE DE OPORTUNIDAD, ROI, PUNTO DE EQUILIBRIO, ALERTA ----------
-    with st.expander("🧮 Coste de Oportunidad (Margen Bruto)"):
-        st.markdown(f"**Margen bruto perdido en {dia_sel}:** € {margen_perdido_total:,.2f}")
-        st.markdown(f"*Este es el impacto real en el beneficio después de descontar el coste de la mercancía vendida (margen del {margen_bruto_pct*100:.0f}%).*")
+    with st.expander("Análisis financiero detallado"):
+        st.markdown(f"**Margen bruto perdido en {dia_sel}:** EUR {margen_perdido_total:,.2f}")
+        st.caption("Impacto real en el beneficio después de descontar el coste de la mercancía vendida.")
 
-    # ROI de la optimización (solo horas con déficit positivo)
-    deficit_positivo = df_vista[df_vista['Deficit_Personal'] > 0]
-    if not deficit_positivo.empty:
-        coste_extra = (deficit_positivo['Deficit_Personal'] * coste_laboral_hora).sum()
-        ventas_recuperables = deficit_positivo['Fuga_Ventas_Euros'].sum()  # ya es ventas perdidas por falta de personal
-        margen_recuperable = ventas_recuperables * margen_bruto_pct
-        roi = (margen_recuperable - coste_extra) / coste_extra * 100 if coste_extra > 0 else 0
-    else:
-        coste_extra = 0
-        ventas_recuperables = 0
-        margen_recuperable = 0
-        roi = 0
+        deficit_positivo = df_vista[df_vista['Deficit_Personal'] > 0]
+        if not deficit_positivo.empty:
+            coste_extra = (deficit_positivo['Deficit_Personal'] * coste_laboral_hora).sum()
+            ventas_recuperables = deficit_positivo['Fuga_Ventas_Euros'].sum()
+            margen_recuperable = ventas_recuperables * margen_bruto_pct
+            roi = (margen_recuperable - coste_extra) / coste_extra * 100 if coste_extra > 0 else 0
+        else:
+            coste_extra = 0
+            ventas_recuperables = 0
+            margen_recuperable = 0
+            roi = 0
 
-    with st.expander("📈 ROI de la Optimización"):
-        st.markdown(f"**Coste de cubrir el déficit con personal extra:** € {coste_extra:,.2f}")
-        st.markdown(f"**Margen bruto recuperable al eliminar la fuga:** € {margen_recuperable:,.2f}")
+        st.markdown(f"**Coste de cubrir el déficit con personal extra:** EUR {coste_extra:,.2f}")
+        st.markdown(f"**Margen bruto recuperable al eliminar la fuga:** EUR {margen_recuperable:,.2f}")
         st.markdown(f"**ROI estimado:** {roi:.1f}%")
         if roi > 0:
-            st.success("✅ Ajustar la plantilla genera un retorno positivo. Cada euro invertido en personal extra retorna margen adicional.")
+            st.success("Ajustar la plantilla genera un retorno positivo. Cada euro invertido en personal extra retorna margen adicional.")
         else:
-            st.warning("⚠️ El coste de la plantilla extra supera el margen recuperable. Revisa los parámetros financieros o la tasa de conversión.")
+            st.warning("El coste de la plantilla extra supera el margen recuperable. Revisar parámetros financieros o tasa de conversión.")
 
-    # Punto de equilibrio de tráfico por empleado/hora
-    clientes_equilibrio = coste_laboral_hora / (ticket_medio * tasa_conversion)
-    with st.expander("📊 Punto de Equilibrio de Tráfico"):
-        st.markdown(f"Para que un empleado sea rentable en una hora, se necesitan al menos **{clientes_equilibrio:.1f} clientes** que compren.")
-        st.markdown(f"*(Cálculo: coste laboral {coste_laboral_hora:.2f}€ / (ticket medio {ticket_medio:.2f}€ × conversión {tasa_conversion:.0%}))*")
+        clientes_equilibrio = coste_laboral_hora / (ticket_medio * tasa_conversion)
+        st.markdown(f"**Punto de equilibrio de tráfico:** se necesitan al menos {clientes_equilibrio:.1f} clientes por hora para que un empleado sea rentable.")
 
-    # Alerta presupuestaria
-    horas_reales = df_vista['Personal_Actual'].sum()
-    horas_optimas = df_vista['Personal_Optimo'].sum()
-    with st.expander("⚠️ Alerta Presupuestaria"):
-        if modo == "📅 Diario":
-            texto_presup = f"Presupuesto diario: {horas_presupuesto} h"
-        else:
-            texto_presup = f"Presupuesto semanal: {horas_presupuesto} h"
+        horas_reales = df_vista['Personal_Actual'].sum()
+        horas_optimas = df_vista['Personal_Optimo'].sum()
+        st.markdown("---")
         st.markdown(f"**Horas programadas actuales:** {horas_reales:.0f} h")
         st.markdown(f"**Horas óptimas necesarias:** {horas_optimas:.0f} h")
-        st.markdown(f"**{texto_presup}**")
+        st.markdown(f"**Presupuesto de horas:** {horas_presupuesto} h")
         if horas_optimas > horas_presupuesto:
-            st.error("🚨 La propuesta óptima supera el presupuesto. Negocia con RRHH o ajusta la tasa de servicio.")
-        elif horas_optimas <= horas_presupuesto:
-            st.success("✅ La propuesta óptima se ajusta al presupuesto disponible.")
+            st.error("La propuesta óptima supera el presupuesto. Negociar con RRHH o ajustar la tasa de servicio.")
+        else:
+            st.success("La propuesta óptima se ajusta al presupuesto disponible.")
 
     # ---------- TABLA DE PLANIFICACIÓN ----------
-    st.markdown(f"### 📋 Planificación y Zoning ({dia_sel})")
+    st.markdown(f"### Planificación y Zoning ({dia_sel})")
     tabla = df_vista[['Hora','Trafico_Clientes','Personal_Actual','Personal_Optimo','Zoning_Recomendado','Fuga_Ventas_Euros']].copy()
-    tabla.columns = ['Hora','Tráfico Clientes','Personal Actual','Personal Óptimo','Distribución (Zoning)','Fuga de Ventas (€)']
-    tabla['Fuga de Ventas (€)'] = tabla['Fuga de Ventas (€)'].apply(lambda x: f"€ {x:,.2f}")
+    tabla.columns = ['Hora','Tráfico Clientes','Personal Actual','Personal Óptimo','Distribución (Zoning)','Fuga de Ventas (EUR)']
+    tabla['Fuga de Ventas (EUR)'] = tabla['Fuga de Ventas (EUR)'].apply(lambda x: f"EUR {x:,.2f}")
     st.dataframe(tabla, use_container_width=True, hide_index=True)
 
     # ---------- BREAK PLANNER ----------
-    st.markdown(f"### ☕ Optimizador de Descansos ({dia_sel})")
+    st.markdown(f"### Optimizador de Descansos ({dia_sel})")
     valles = df_vista[df_vista['Deficit_Personal'] < 0][['Hora','Deficit_Personal','Personal_Actual']].copy()
     if not valles.empty:
         valles['Deficit_Personal'] = valles['Deficit_Personal'].abs()
         valles.columns = ['Franja Horaria','Exceso de Personal','Personal en Tienda']
-        st.success("✅ Franjas seguras para descansos:")
+        st.success("Franjas seguras para organizar descansos:")
         st.table(valles.sort_values('Exceso de Personal', ascending=False).head(3))
     else:
-        st.warning("⚠️ Sin franjas con exceso. Los descansos requerirán refuerzos o cierre parcial de zonas.")
+        st.warning("No se detectan franjas con exceso de personal. Los descansos requerirán refuerzos o cierre parcial de zonas.")
 
     # ---------- RECOMENDACIONES AUTOMÁTICAS ----------
-    with st.expander("📝 Recomendaciones Automáticas para el Store Manager"):
+    with st.expander("Recomendaciones automáticas para el Store Manager"):
         deficit_horas = df_vista[df_vista['Deficit_Personal'] > 0]
         if not deficit_horas.empty:
             horas_criticas = ', '.join(deficit_horas['Hora'].values)
-            st.markdown(f"🔴 **Horas críticas detectadas:** {horas_criticas}")
-            st.markdown(f"Se recomienda **reforzar con {int(deficit_horas['Deficit_Personal'].max())} persona(s) extra** en las franjas de mayor déficit para evitar la fuga de ventas estimada de **€ {fuga_total:,.2f}**.")
+            st.markdown(f"Horas críticas detectadas: {horas_criticas}")
+            st.markdown(f"Se recomienda reforzar con {int(deficit_horas['Deficit_Personal'].max())} persona(s) extra en las franjas de mayor déficit para evitar una fuga de ventas estimada de EUR {fuga_total:,.2f}.")
         else:
-            st.markdown("🟢 La plantilla está equilibrada o hay exceso de personal. Revisa si puedes recolocar horas en otros días o reducir costes.")
+            st.markdown("La plantilla está equilibrada o existe exceso de personal. Revisar si se pueden recolocar horas en otros días o reducir costes.")
 
-    # ---------- SIMULADOR WHAT-IF ----------
-    with st.expander("🔮 Simulador de escenarios 'What-If'"):
-        st.markdown("Modifica los valores para ver cómo cambiarían las pérdidas:")
-        sim_conversion = st.slider("Tasa de conversión simulada (%)", 5, 50, int(tasa_conversion*100)) / 100.0
-        sim_ticket = st.number_input("Ticket medio simulado (€)", 5.0, 500.0, ticket_medio, 1.0)
-        df_sim = df_vista.copy()
-        df_sim['Fuga_Ventas_Sim'] = df_sim['Clientes_Excedentes'] * sim_conversion * sim_ticket
-        fuga_sim = df_sim['Fuga_Ventas_Sim'].sum()
-        delta = fuga_sim - fuga_total
-        st.metric("Fuga de ventas simulada", f"€ {fuga_sim:,.2f}",
-                  delta=f"{'↑' if delta>0 else '↓'} € {abs(delta):,.2f} vs actual")
-
-    # ---------- EXPLICACIÓN VISUAL CLIENTES/EMPLEADO (DENTRO DE UN EXPANDER) ----------
-    with st.expander("👥 Visualización del concepto 'Clientes por empleado/hora'"):
+    # ---------- EXPLICACIÓN VISUAL DEL CONCEPTO CLIENTES/EMPLEADO ----------
+    with st.expander("Visualización: capacidad de atención (clientes por empleado/hora)"):
         ejemplo_trafico = np.arange(0, 200, 10)
         capacidad = clientes_por_empleado
         fig_conc = px.bar(x=ejemplo_trafico, y=[min(c, capacidad) for c in ejemplo_trafico],
@@ -254,31 +223,209 @@ if df is not None:
                            annotation_text=f"Capacidad máx. 1 empleado = {capacidad} clientes")
         fig_conc.update_layout(title="Atención al cliente vs tráfico entrante")
         st.plotly_chart(fig_conc, use_container_width=True)
-        st.markdown("Cuando el tráfico supera la línea roja, los clientes adicionales no son atendidos → se genera fuga de ventas.")
+        st.markdown("Cuando el tráfico supera la línea roja, los clientes adicionales no son atendidos, generando fuga de ventas.")
 
-    # ---------- GRÁFICO SEMANAL SOLO EN MODO SEMANAL ----------
-    if modo == "🗓️ Semanal":
-        st.markdown("### 📈 Tendencia Comparativa del Tráfico Semanal")
+    # ---------- SIMULADOR DE ESCENARIOS (TODOS) ----------
+    with st.expander("Simulador de escenarios (What-If)"):
+        st.markdown("Seleccione un escenario y configure sus parámetros para ver el impacto en los KPIs.")
+
+        escenario = st.selectbox("Escenario a simular:", [
+            "Variación del tráfico (%)",
+            "Penalización de la conversión por saturación",
+            "Contratación de refuerzo externo",
+            "Reducción de personal en horas valle",
+            "Ajuste del estándar de servicio (clientes/empleado)",
+            "Cierre temporal de probadores",
+            "Apertura de segunda caja en horas pico",
+            "Comparador de dos estrategias"
+        ])
+
+        df_sim = df_vista.copy()
+        # Valores base de referencia
+        base_fuga = df_vista['Fuga_Ventas_Euros'].sum()
+        base_costelab = df_vista['Personal_Actual'].sum() * coste_laboral_hora
+        base_margen = df_vista['Margen_Perdido'].sum()
+
+        # ---- 1. Variación de tráfico ----
+        if escenario == "Variación del tráfico (%)":
+            var_trafico = st.slider("Variación del tráfico (%)", -50, 50, 20)
+            df_sim['Trafico_Clientes'] = df_sim['Trafico_Clientes'] * (1 + var_trafico/100)
+            df_sim['Personal_Optimo'] = np.ceil(df_sim['Trafico_Clientes'] / clientes_por_empleado)
+            df_sim['Capacidad_Actual'] = df_sim['Personal_Actual'] * clientes_por_empleado
+            df_sim['Clientes_Excedentes'] = np.maximum(0, df_sim['Trafico_Clientes'] - df_sim['Capacidad_Actual'])
+            df_sim['Fuga_Ventas_Euros'] = df_sim['Clientes_Excedentes'] * tasa_conversion * ticket_medio
+            df_sim['Margen_Perdido'] = df_sim['Fuga_Ventas_Euros'] * margen_bruto_pct
+            st.metric("Nueva fuga de ventas", f"EUR {df_sim['Fuga_Ventas_Euros'].sum():,.2f}")
+
+        # ---- 2. Penalización de conversión por saturación ----
+        elif escenario == "Penalización de la conversión por saturación":
+            penalizacion = st.slider("Reducción de conversión por cada empleado faltante (%)", 0, 50, 10) / 100.0
+            df_sim['Conv_Ajustada'] = tasa_conversion * (1 - penalizacion * np.maximum(0, df_sim['Deficit_Personal']))
+            df_sim['Fuga_Ventas_Euros'] = df_sim['Clientes_Excedentes'] * df_sim['Conv_Ajustada'] * ticket_medio
+            df_sim['Margen_Perdido'] = df_sim['Fuga_Ventas_Euros'] * margen_bruto_pct
+            st.metric("Nueva fuga de ventas", f"EUR {df_sim['Fuga_Ventas_Euros'].sum():,.2f}")
+
+        # ---- 3. Refuerzo externo ----
+        elif escenario == "Contratación de refuerzo externo":
+            coste_refuerzo = st.number_input("Coste laboral/hora del refuerzo (EUR)", 5.0, 50.0, 15.0, 1.0)
+            cubrir_deficit = st.checkbox("Cubrir completamente el déficit de personal", value=True)
+            if cubrir_deficit:
+                df_sim['Personal_Reforzado'] = df_sim['Personal_Actual'] + np.maximum(0, df_sim['Deficit_Personal'])
+            else:
+                extra = st.number_input("Empleados extra a añadir en todo el día", 0, 20, 2)
+                df_sim['Personal_Reforzado'] = df_sim['Personal_Actual'] + extra/len(df_sim)  # distribuye uniforme
+            df_sim['Capacidad_Actual'] = df_sim['Personal_Reforzado'] * clientes_por_empleado
+            df_sim['Clientes_Excedentes'] = np.maximum(0, df_sim['Trafico_Clientes'] - df_sim['Capacidad_Actual'])
+            df_sim['Fuga_Ventas_Euros'] = df_sim['Clientes_Excedentes'] * tasa_conversion * ticket_medio
+            df_sim['Margen_Perdido'] = df_sim['Fuga_Ventas_Euros'] * margen_bruto_pct
+            coste_total = (df_sim['Personal_Reforzado'] - df_vista['Personal_Actual']).sum() * coste_refuerzo
+            beneficio_adicional = base_margen - df_sim['Margen_Perdido'].sum()
+            resultado = beneficio_adicional - coste_total
+            st.markdown(f"**Coste del refuerzo:** EUR {coste_total:,.2f}")
+            st.markdown(f"**Margen bruto adicional recuperado:** EUR {beneficio_adicional:,.2f}")
+            st.markdown(f"**Resultado neto:** EUR {resultado:,.2f}")
+
+        # ---- 4. Reducción de personal en horas valle ----
+        elif escenario == "Reducción de personal en horas valle":
+            factor_reduccion = st.slider("Porcentaje del exceso de personal a eliminar", 0, 100, 50) / 100.0
+            exceso = np.maximum(0, -df_sim['Deficit_Personal'])
+            df_sim['Personal_Actual'] = df_sim['Personal_Actual'] - exceso * factor_reduccion
+            df_sim['Personal_Actual'] = df_sim['Personal_Actual'].clip(lower=0)
+            df_sim['Capacidad_Actual'] = df_sim['Personal_Actual'] * clientes_por_empleado
+            df_sim['Clientes_Excedentes'] = np.maximum(0, df_sim['Trafico_Clientes'] - df_sim['Capacidad_Actual'])
+            df_sim['Fuga_Ventas_Euros'] = df_sim['Clientes_Excedentes'] * tasa_conversion * ticket_medio
+            df_sim['Margen_Perdido'] = df_sim['Fuga_Ventas_Euros'] * margen_bruto_pct
+            ahorro = (df_vista['Personal_Actual'].sum() - df_sim['Personal_Actual'].sum()) * coste_laboral_hora
+            st.markdown(f"Ahorro en costes laborales: EUR {ahorro:,.2f}")
+            st.metric("Nueva fuga de ventas", f"EUR {df_sim['Fuga_Ventas_Euros'].sum():,.2f}")
+
+        # ---- 5. Ajuste del estándar de servicio ----
+        elif escenario == "Ajuste del estándar de servicio (clientes/empleado)":
+            nuevo_ratio = st.slider("Nuevo ratio de clientes por empleado/hora", 10, 40, clientes_por_empleado)
+            df_sim['Personal_Optimo'] = np.ceil(df_sim['Trafico_Clientes'] / nuevo_ratio)
+            df_sim['Deficit_Personal'] = df_sim['Personal_Optimo'] - df_sim['Personal_Actual']
+            df_sim['Capacidad_Actual'] = df_sim['Personal_Actual'] * nuevo_ratio
+            df_sim['Clientes_Excedentes'] = np.maximum(0, df_sim['Trafico_Clientes'] - df_sim['Capacidad_Actual'])
+            df_sim['Fuga_Ventas_Euros'] = df_sim['Clientes_Excedentes'] * tasa_conversion * ticket_medio
+            df_sim['Margen_Perdido'] = df_sim['Fuga_Ventas_Euros'] * margen_bruto_pct
+            st.metric("Nueva fuga de ventas", f"EUR {df_sim['Fuga_Ventas_Euros'].sum():,.2f}")
+
+        # ---- 6. Cierre de probadores ----
+        elif escenario == "Cierre temporal de probadores":
+            impacto_conv = st.slider("Reducción de la tasa de conversión por cierre (%)", 0, 50, 15) / 100.0
+            horas_aplicar = st.multiselect("Horas en las que se cierran probadores", df_sim['Hora'].unique(), default=df_sim['Hora'].unique())
+            mask = df_sim['Hora'].isin(horas_aplicar)
+            conv_original = tasa_conversion
+            df_sim.loc[mask, 'Tasa_Conv'] = tasa_conversion * (1 - impacto_conv)
+            df_sim.loc[~mask, 'Tasa_Conv'] = tasa_conversion
+            df_sim['Fuga_Ventas_Euros'] = df_sim['Clientes_Excedentes'] * df_sim['Tasa_Conv'] * ticket_medio
+            df_sim['Margen_Perdido'] = df_sim['Fuga_Ventas_Euros'] * margen_bruto_pct
+            st.metric("Nueva fuga de ventas", f"EUR {df_sim['Fuga_Ventas_Euros'].sum():,.2f}")
+
+        # ---- 7. Apertura de segunda caja en horas pico ----
+        elif escenario == "Apertura de segunda caja en horas pico":
+            incremento_capacidad = st.slider("Incremento de clientes asumibles por empleado (%)", 0, 50, 20) / 100.0
+            horas_caja = st.multiselect("Horas con segunda caja operativa", df_sim['Hora'].unique())
+            capacidad_mejorada = clientes_por_empleado * (1 + incremento_capacidad)
+            mask = df_sim['Hora'].isin(horas_caja)
+            df_sim['Capacidad_Actual'] = df_sim['Personal_Actual'] * clientes_por_empleado
+            df_sim.loc[mask, 'Capacidad_Actual'] = df_sim.loc[mask, 'Personal_Actual'] * capacidad_mejorada
+            df_sim['Clientes_Excedentes'] = np.maximum(0, df_sim['Trafico_Clientes'] - df_sim['Capacidad_Actual'])
+            df_sim['Fuga_Ventas_Euros'] = df_sim['Clientes_Excedentes'] * tasa_conversion * ticket_medio
+            df_sim['Margen_Perdido'] = df_sim['Fuga_Ventas_Euros'] * margen_bruto_pct
+            st.metric("Nueva fuga de ventas", f"EUR {df_sim['Fuga_Ventas_Euros'].sum():,.2f}")
+
+        # ---- 8. Comparador de dos estrategias ----
+        elif escenario == "Comparador de dos estrategias":
+            st.markdown("Configure dos escenarios y compare sus resultados frente a la situación actual.")
+            colA, colB = st.columns(2)
+            with colA:
+                st.subheader("Estrategia A")
+                var_trafico_a = st.slider("Var. tráfico A (%)", -50, 50, 0, key="ta")
+                ratio_a = st.slider("Clientes/empleado A", 10, 40, clientes_por_empleado, key="ra")
+                refuerzo_a = st.checkbox("Cubrir déficit con refuerzo", key="refa")
+                coste_ref_a = st.number_input("Coste refuerzo/h A", 5.0, 50.0, 15.0, 1.0, key="costa") if refuerzo_a else 0
+            with colB:
+                st.subheader("Estrategia B")
+                var_trafico_b = st.slider("Var. tráfico B (%)", -50, 50, 0, key="tb")
+                ratio_b = st.slider("Clientes/empleado B", 10, 40, clientes_por_empleado, key="rb")
+                refuerzo_b = st.checkbox("Cubrir déficit con refuerzo", key="refb")
+                coste_ref_b = st.number_input("Coste refuerzo/h B", 5.0, 50.0, 15.0, 1.0, key="costb") if refuerzo_b else 0
+
+            def simular_estrategia(var_traf, ratio, refuerzo, coste_ref):
+                sim = df_vista.copy()
+                sim['Trafico_Clientes'] *= (1 + var_traf/100)
+                sim['Personal_Optimo'] = np.ceil(sim['Trafico_Clientes'] / ratio)
+                if refuerzo:
+                    deficit = np.maximum(0, sim['Personal_Optimo'] - sim['Personal_Actual'])
+                    sim['Personal_Actual'] += deficit
+                sim['Capacidad_Actual'] = sim['Personal_Actual'] * ratio
+                sim['Clientes_Excedentes'] = np.maximum(0, sim['Trafico_Clientes'] - sim['Capacidad_Actual'])
+                sim['Fuga_Ventas_Euros'] = sim['Clientes_Excedentes'] * tasa_conversion * ticket_medio
+                sim['Margen_Perdido'] = sim['Fuga_Ventas_Euros'] * margen_bruto_pct
+                fuga = sim['Fuga_Ventas_Euros'].sum()
+                coste_lab = sim['Personal_Actual'].sum() * (coste_ref if refuerzo else coste_laboral_hora)
+                return fuga, coste_lab
+
+            fugaA, costeA = simular_estrategia(var_trafico_a, ratio_a, refuerzo_a, coste_ref_a)
+            fugaB, costeB = simular_estrategia(var_trafico_b, ratio_b, refuerzo_b, coste_ref_b)
+
+            st.markdown("### Comparación de resultados")
+            comp_df = pd.DataFrame({
+                'Indicador': ['Fuga ventas (EUR)', 'Coste laboral total (EUR)'],
+                'Situación actual': [base_fuga, base_costelab],
+                'Estrategia A': [fugaA, costeA],
+                'Estrategia B': [fugaB, costeB]
+            })
+            st.table(comp_df)
+
+    # ---------- GRÁFICO SEMANAL EN MODO SEMANAL ----------
+    if modo == "Semanal":
+        st.markdown("### Tendencia Comparativa del Tráfico Semanal")
         fig_sem = px.bar(df, x="Hora", y="Trafico_Clientes", color="Dia", barmode="group",
-                         title="Patrones horarios – 7 días")
+                         title="Patrones horarios - 7 días")
         st.plotly_chart(fig_sem, use_container_width=True)
 
+    # ---------- CONCEPTOS TEÓRICOS ADICIONALES ----------
+    with st.expander("Conceptos teóricos y metodología"):
+        st.markdown("""
+        **La importancia de la planificación basada en datos**  
+        La gestión tradicional de turnos suele apoyarse en intuiciones o plantillas fijas. El uso de datos de tráfico permite una asignación dinámica que maximiza la atención al cliente y minimiza los costes innecesarios.
+
+        **Cálculo de la capacidad de atención**  
+        La capacidad se define como el número de clientes que un empleado puede atender eficazmente por hora. Este parámetro depende del formato comercial, los procesos operativos y el nivel de servicio deseado.
+
+        **Interpretación del déficit y exceso de personal**  
+        - Déficit: riesgo de pérdida de ventas por falta de atención.  
+        - Exceso: coste laboral improductivo que lastra la rentabilidad de la tienda.
+
+        **Efecto de la saturación en la conversión**  
+        Cuando el personal está sobrecargado, la calidad del servicio disminuye y la tasa de conversión puede caer, amplificando la fuga de ventas.
+
+        **El coste de oportunidad en retail**  
+        Cada cliente que abandona sin comprar representa una venta perdida, pero también un margen bruto que deja de ingresarse. La herramienta traduce este concepto en cifras concretas para facilitar la toma de decisiones.
+
+        **Metodología Lean y Six Sigma aplicada a la gestión de turnos**  
+        El Smart Shift Planner se inspira en la eliminación de desperdicios (horas sobrantes) y la maximización del valor (atención en horas clave). La medición continua y la simulación permiten ciclos de mejora PDCA (Plan-Do-Check-Act).
+        """)
+
 else:
-    st.info("👈 Sube un archivo CSV o activa el **Modo Demo** para comenzar.")
-    if modo == "📅 Diario":
-        st.markdown("**Estructura esperada del CSV diario:** `Hora, Trafico_Clientes, Personal_Actual`")
+    st.info("Suba un archivo CSV o active el Modo Demo para comenzar.")
+    if modo == "Diario":
+        st.markdown("Estructura esperada del CSV diario: `Hora, Trafico_Clientes, Personal_Actual`")
     else:
-        st.markdown("**Estructura esperada del CSV semanal:** `Dia, Hora, Trafico_Clientes, Personal_Actual`")
+        st.markdown("Estructura esperada del CSV semanal: `Dia, Hora, Trafico_Clientes, Personal_Actual`")
 
 # ------------------ FOOTER ------------------
 st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: #555; padding: 20px;'>
-        <p style='font-size: 16px;'>Desarrollado por <b>Jose Luis Asenjo</b></p>
-        <a href='https://www.linkedin.com/in/joseluisasenjo' target='_blank' style='text-decoration: none; color: #0077b5; font-weight: bold;'>
-            🔗 Conecta conmigo en LinkedIn
-        </a>
+        <p style='font-size: 16px; margin-bottom: 8px;'>Desarrollado por <b>Jose Luis Asenjo</b></p>
+        <p style='font-size: 14px;'>
+            <a href='https://www.linkedin.com/in/joseluisasenjo' target='_blank' style='text-decoration: none; color: #0077b5; font-weight: bold;'>LinkedIn</a> |
+            <a href='https://joseasenjo.github.io/portfolio/' target='_blank' style='text-decoration: none; color: #0077b5; font-weight: bold;'>Portfolio</a>
+        </p>
     </div>
     """,
     unsafe_allow_html=True
