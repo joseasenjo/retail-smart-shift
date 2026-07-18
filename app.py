@@ -9,11 +9,32 @@ st.set_page_config(page_title="Smart Shift Planner | Retail Analytics", layout="
 st.title("📊 Optimizador de Cuadrantes (Smart Shift Planner)")
 st.markdown("Herramienta avanzada para Store Managers: Optimización de plantilla, asignación de zonas (Zoning) y cálculo de impacto financiero.")
 
-# Subida de archivo (Procesamiento directo en RAM)
-uploaded_file = st.file_uploader("Sube el archivo CSV (Columnas requeridas: Hora, Trafico_Clientes, Personal_Actual)", type=["csv"])
+# Opciones de carga de datos
+col_upload, col_demo = st.columns([2, 1])
+
+with col_upload:
+    uploaded_file = st.file_uploader("Sube el archivo CSV (Columnas: Hora, Trafico_Clientes, Personal_Actual)", type=["csv"])
+
+with col_demo:
+    st.markdown("<br>", unsafe_allow_html=True) # Espaciado
+    demo_mode = st.checkbox("🚀 Cargar datos de demostración (Modo Demo)")
+
+# Variable para almacenar el dataframe
+df = None
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
+elif demo_mode:
+    # Generar datos demo simulando un día real en Retail
+    datos_demo = {
+        "Hora": ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00"],
+        "Trafico_Clientes": [15, 45, 95, 40, 15, 25, 80, 130, 160, 110, 50, 20],
+        "Personal_Actual": [2, 2, 3, 3, 2, 2, 3, 4, 4, 4, 3, 2]
+    }
+    df = pd.DataFrame(datos_demo)
+
+# Si hay datos (ya sea por archivo o por demo), mostramos la herramienta
+if df is not None:
     
     # --- SIDEBAR: PARÁMETROS OPERATIVOS Y FINANCIEROS ---
     st.sidebar.header("⚙️ Parámetros Operativos")
@@ -30,10 +51,8 @@ if uploaded_file is not None:
                                   np.where(df['Deficit_Personal'] < 0, 'Bajo (Exceso)', 'Óptimo'))
 
     # --- 1. CALCULADORA DE FUGA DE VENTAS ---
-    # Calculamos cuántos clientes exceden la capacidad de atención del personal actual
     df['Capacidad_Actual'] = df['Personal_Actual'] * clientes_por_empleado
     df['Clientes_Excedentes'] = np.maximum(0, df['Trafico_Clientes'] - df['Capacidad_Actual'])
-    # Estimamos el dinero perdido asumiendo que esos clientes no compran por falta de atención
     df['Fuga_Ventas_Euros'] = df['Clientes_Excedentes'] * tasa_conversion * ticket_medio
 
     # --- 2. MÓDULO DE ASIGNACIÓN DE ZONAS (ZONING) ---
@@ -52,6 +71,7 @@ if uploaded_file is not None:
     df['Zoning_Recomendado'] = df['Personal_Optimo'].apply(asignar_zonas)
 
     # --- MÉTRICAS PRINCIPALES ---
+    st.markdown("---")
     st.markdown("### 🎯 Resumen Operativo y Financiero")
     fuga_total = df['Fuga_Ventas_Euros'].sum()
     
@@ -83,7 +103,6 @@ if uploaded_file is not None:
     tabla_mostrar = df[['Hora', 'Trafico_Clientes', 'Personal_Actual', 'Personal_Optimo', 'Zoning_Recomendado', 'Fuga_Ventas_Euros']].copy()
     tabla_mostrar.columns = ['Hora', 'Tráfico Clientes', 'Personal Actual', 'Personal Óptimo', 'Distribución (Zoning)', 'Fuga de Ventas (€)']
     
-    # Formatear la columna de euros para la tabla
     tabla_mostrar['Fuga de Ventas (€)'] = tabla_mostrar['Fuga de Ventas (€)'].apply(lambda x: f"€ {x:,.2f}")
     st.dataframe(tabla_mostrar, use_container_width=True)
 
@@ -92,7 +111,7 @@ if uploaded_file is not None:
     horas_valle = df[df['Deficit_Personal'] < 0][['Hora', 'Deficit_Personal', 'Personal_Actual']].copy()
     
     if not horas_valle.empty:
-        horas_valle['Deficit_Personal'] = horas_valle['Deficit_Personal'].abs() # Convertir a número positivo para leer "Exceso"
+        horas_valle['Deficit_Personal'] = horas_valle['Deficit_Personal'].abs()
         horas_valle.columns = ['Franja Horaria', 'Exceso de Personal', 'Personal en Tienda']
         st.success("✅ Se han detectado franjas seguras. Se recomienda organizar los descansos del equipo en los siguientes tramos:")
         st.table(horas_valle.sort_values(by='Exceso de Personal', ascending=False).head(3))
@@ -100,18 +119,18 @@ if uploaded_file is not None:
         st.warning("⚠️ No se detectan franjas con exceso de personal. Ajustar descansos requerirá refuerzos externos o cierres parciales de zonas.")
 
 else:
-    st.info("Por favor, sube un archivo CSV para generar el modelo de cuadrantes.")
+    # Pantalla de inicio si no hay datos ni demo activa
+    st.info("👈 Sube un archivo CSV o activa el **Modo Demo** para visualizar el Optimizador.")
     
-    # Ejemplo visual para que sepas qué formato subir
     st.markdown("**Estructura esperada del archivo CSV:**")
     ejemplo_df = pd.DataFrame({
-        "Hora": ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"],
-        "Trafico_Clientes": [15, 45, 95, 40, 15, 30, 110],
-        "Personal_Actual": [2, 2, 3, 3, 3, 2, 3]
+        "Hora": ["10:00", "11:00", "12:00", "13:00"],
+        "Trafico_Clientes": [15, 45, 95, 40],
+        "Personal_Actual": [2, 2, 3, 3]
     })
     st.dataframe(ejemplo_df, hide_index=True)
 
-# --- FOOTER (Firma y Contacto) ---
+# --- FOOTER ---
 st.markdown("---")
 st.markdown(
     """
