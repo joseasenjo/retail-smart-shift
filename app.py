@@ -203,6 +203,95 @@ if df is not None:
     else:
         st.warning("No se detectan franjas con exceso de personal. Los descansos requerirán refuerzos o cierre parcial de zonas.")
 
+    # ---------- BENCHMARKS DE GESTIÓN DE PERSONAL ----------
+    with st.expander("Benchmarks de gestión de personal"):
+        st.markdown("### Indicadores de eficiencia operativa")
+        st.markdown("Se comparan los valores calculados con los estándares de referencia del sector retail.")
+
+        # Datos necesarios para los cálculos
+        # Ventas estimadas reales (clientes atendidos * conversión * ticket)
+        clientes_atendidos = (df_vista['Trafico_Clientes'] - df_vista['Clientes_Excedentes']).sum()
+        ventas_estimadas = clientes_atendidos * tasa_conversion * ticket_medio
+        horas_trabajadas = df_vista['Personal_Actual'].sum()
+        coste_laboral_total = horas_trabajadas * coste_laboral_hora
+
+        # 1. Ventas por empleado (EUR/hora)
+        ventas_por_empleado = ventas_estimadas / horas_trabajadas if horas_trabajadas > 0 else 0
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Ventas por empleado (EUR/h)", f"{ventas_por_empleado:,.2f}")
+        with col2:
+            st.caption("Referencia: moda rápida 80-150 EUR/h, deporte 100-180 EUR/h")
+
+        # 2. Coste laboral sobre ventas (%)
+        coste_laboral_pct = (coste_laboral_total / ventas_estimadas * 100) if ventas_estimadas > 0 else 0
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Coste laboral / Ventas", f"{coste_laboral_pct:.1f}%")
+        with col2:
+            st.caption("Ideal 12-18%, máximo recomendable 22%")
+            if coste_laboral_pct > 22:
+                st.error("Supera el límite recomendable. Revisar productividad o ajustar plantilla.")
+            elif 12 <= coste_laboral_pct <= 22:
+                st.success("Dentro del rango aceptable.")
+            else:
+                st.warning("Por debajo del objetivo, podría indicar falta de personal para atender la demanda.")
+
+        # 3. Ratio de productividad (clientes atendidos/hora)
+        ratio_productividad = clientes_atendidos / horas_trabajadas if horas_trabajadas > 0 else 0
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Clientes atendidos por hora", f"{ratio_productividad:.1f}")
+        with col2:
+            st.caption("Comparar con la media histórica de la tienda.")
+
+        # 4. Cobertura de horas con déficit
+        total_horas = len(df_vista)
+        horas_riesgo = len(df_vista[df_vista['Deficit_Personal'] > 0])
+        cobertura = (1 - horas_riesgo / total_horas) * 100 if total_horas > 0 else 0
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Cobertura de horas sin déficit", f"{cobertura:.0f}%")
+        with col2:
+            st.caption("Objetivo > 95%")
+            if cobertura >= 95:
+                st.success("Cobertura excelente.")
+            else:
+                st.warning("Existen horas desatendidas. Reforzar las franjas detectadas en el mapa de estrés.")
+
+        # Indicadores que requieren datos externos
+        st.markdown("---")
+        st.markdown("### Indicadores adicionales (introducir datos manualmente para comparar)")
+        
+        # 5. Tasa de absentismo
+        absentismo = st.number_input("Tasa de absentismo del periodo (%)", 0.0, 100.0, 2.0, 0.1, key="absentismo")
+        if absentismo < 3:
+            st.success(f"Absentismo {absentismo}%: dentro del objetivo (<3%).")
+        else:
+            st.error(f"Absentismo {absentismo}%: supera el objetivo. Investigar causas y planificar cobertura.")
+
+        # 6. Índice de rotación
+        rotacion = st.number_input("Índice de rotación anual estimado (%)", 0.0, 200.0, 35.0, 1.0, key="rotacion")
+        st.caption("Referencia sector retail: 30-50%. Valores superiores indican necesidad de mejorar retención.")
+        if rotacion > 50:
+            st.error("Rotación elevada. Impacta en costes de reclutamiento y formación.")
+        
+        # 7. Tiempo medio de atención por cliente (min)
+        tiempo_atencion = st.number_input("Tiempo medio de atención por cliente (minutos)", 0.0, 30.0, 5.0, 0.5, key="tiempo")
+        st.caption("Referencia moda: 3-7 minutos según nivel de servicio.")
+        if 3 <= tiempo_atencion <= 7:
+            st.success("Dentro del rango típico.")
+        elif tiempo_atencion > 7:
+            st.warning("Tiempo de atención elevado. Puede indicar procesos ineficientes o falta de formación.")
+        
+        # 8. Horas extra sobre horas planificadas
+        horas_extra_pct = st.number_input("Horas extra realizadas (% sobre horas planificadas)", 0.0, 100.0, 4.0, 0.5, key="extra")
+        st.caption("Ideal < 5%.")
+        if horas_extra_pct <= 5:
+            st.success("Horas extra controladas.")
+        else:
+            st.warning("Exceso de horas extra. Revisar planificación y picos de demanda.")
+
     # ---------- RECOMENDACIONES AUTOMÁTICAS ----------
     with st.expander("Recomendaciones automáticas para el Store Manager"):
         deficit_horas = df_vista[df_vista['Deficit_Personal'] > 0]
@@ -241,12 +330,10 @@ if df is not None:
         ])
 
         df_sim = df_vista.copy()
-        # Valores base de referencia
         base_fuga = df_vista['Fuga_Ventas_Euros'].sum()
         base_costelab = df_vista['Personal_Actual'].sum() * coste_laboral_hora
         base_margen = df_vista['Margen_Perdido'].sum()
 
-        # ---- 1. Variación de tráfico ----
         if escenario == "Variación del tráfico (%)":
             var_trafico = st.slider("Variación del tráfico (%)", -50, 50, 20)
             df_sim['Trafico_Clientes'] = df_sim['Trafico_Clientes'] * (1 + var_trafico/100)
@@ -257,7 +344,6 @@ if df is not None:
             df_sim['Margen_Perdido'] = df_sim['Fuga_Ventas_Euros'] * margen_bruto_pct
             st.metric("Nueva fuga de ventas", f"EUR {df_sim['Fuga_Ventas_Euros'].sum():,.2f}")
 
-        # ---- 2. Penalización de conversión por saturación ----
         elif escenario == "Penalización de la conversión por saturación":
             penalizacion = st.slider("Reducción de conversión por cada empleado faltante (%)", 0, 50, 10) / 100.0
             df_sim['Conv_Ajustada'] = tasa_conversion * (1 - penalizacion * np.maximum(0, df_sim['Deficit_Personal']))
@@ -265,7 +351,6 @@ if df is not None:
             df_sim['Margen_Perdido'] = df_sim['Fuga_Ventas_Euros'] * margen_bruto_pct
             st.metric("Nueva fuga de ventas", f"EUR {df_sim['Fuga_Ventas_Euros'].sum():,.2f}")
 
-        # ---- 3. Refuerzo externo ----
         elif escenario == "Contratación de refuerzo externo":
             coste_refuerzo = st.number_input("Coste laboral/hora del refuerzo (EUR)", 5.0, 50.0, 15.0, 1.0)
             cubrir_deficit = st.checkbox("Cubrir completamente el déficit de personal", value=True)
@@ -273,7 +358,7 @@ if df is not None:
                 df_sim['Personal_Reforzado'] = df_sim['Personal_Actual'] + np.maximum(0, df_sim['Deficit_Personal'])
             else:
                 extra = st.number_input("Empleados extra a añadir en todo el día", 0, 20, 2)
-                df_sim['Personal_Reforzado'] = df_sim['Personal_Actual'] + extra/len(df_sim)  # distribuye uniforme
+                df_sim['Personal_Reforzado'] = df_sim['Personal_Actual'] + extra/len(df_sim)
             df_sim['Capacidad_Actual'] = df_sim['Personal_Reforzado'] * clientes_por_empleado
             df_sim['Clientes_Excedentes'] = np.maximum(0, df_sim['Trafico_Clientes'] - df_sim['Capacidad_Actual'])
             df_sim['Fuga_Ventas_Euros'] = df_sim['Clientes_Excedentes'] * tasa_conversion * ticket_medio
@@ -285,7 +370,6 @@ if df is not None:
             st.markdown(f"**Margen bruto adicional recuperado:** EUR {beneficio_adicional:,.2f}")
             st.markdown(f"**Resultado neto:** EUR {resultado:,.2f}")
 
-        # ---- 4. Reducción de personal en horas valle ----
         elif escenario == "Reducción de personal en horas valle":
             factor_reduccion = st.slider("Porcentaje del exceso de personal a eliminar", 0, 100, 50) / 100.0
             exceso = np.maximum(0, -df_sim['Deficit_Personal'])
@@ -299,7 +383,6 @@ if df is not None:
             st.markdown(f"Ahorro en costes laborales: EUR {ahorro:,.2f}")
             st.metric("Nueva fuga de ventas", f"EUR {df_sim['Fuga_Ventas_Euros'].sum():,.2f}")
 
-        # ---- 5. Ajuste del estándar de servicio ----
         elif escenario == "Ajuste del estándar de servicio (clientes/empleado)":
             nuevo_ratio = st.slider("Nuevo ratio de clientes por empleado/hora", 10, 40, clientes_por_empleado)
             df_sim['Personal_Optimo'] = np.ceil(df_sim['Trafico_Clientes'] / nuevo_ratio)
@@ -310,19 +393,16 @@ if df is not None:
             df_sim['Margen_Perdido'] = df_sim['Fuga_Ventas_Euros'] * margen_bruto_pct
             st.metric("Nueva fuga de ventas", f"EUR {df_sim['Fuga_Ventas_Euros'].sum():,.2f}")
 
-        # ---- 6. Cierre de probadores ----
         elif escenario == "Cierre temporal de probadores":
             impacto_conv = st.slider("Reducción de la tasa de conversión por cierre (%)", 0, 50, 15) / 100.0
             horas_aplicar = st.multiselect("Horas en las que se cierran probadores", df_sim['Hora'].unique(), default=df_sim['Hora'].unique())
             mask = df_sim['Hora'].isin(horas_aplicar)
-            conv_original = tasa_conversion
+            df_sim['Tasa_Conv'] = tasa_conversion
             df_sim.loc[mask, 'Tasa_Conv'] = tasa_conversion * (1 - impacto_conv)
-            df_sim.loc[~mask, 'Tasa_Conv'] = tasa_conversion
             df_sim['Fuga_Ventas_Euros'] = df_sim['Clientes_Excedentes'] * df_sim['Tasa_Conv'] * ticket_medio
             df_sim['Margen_Perdido'] = df_sim['Fuga_Ventas_Euros'] * margen_bruto_pct
             st.metric("Nueva fuga de ventas", f"EUR {df_sim['Fuga_Ventas_Euros'].sum():,.2f}")
 
-        # ---- 7. Apertura de segunda caja en horas pico ----
         elif escenario == "Apertura de segunda caja en horas pico":
             incremento_capacidad = st.slider("Incremento de clientes asumibles por empleado (%)", 0, 50, 20) / 100.0
             horas_caja = st.multiselect("Horas con segunda caja operativa", df_sim['Hora'].unique())
@@ -335,7 +415,6 @@ if df is not None:
             df_sim['Margen_Perdido'] = df_sim['Fuga_Ventas_Euros'] * margen_bruto_pct
             st.metric("Nueva fuga de ventas", f"EUR {df_sim['Fuga_Ventas_Euros'].sum():,.2f}")
 
-        # ---- 8. Comparador de dos estrategias ----
         elif escenario == "Comparador de dos estrategias":
             st.markdown("Configure dos escenarios y compare sus resultados frente a la situación actual.")
             colA, colB = st.columns(2)
