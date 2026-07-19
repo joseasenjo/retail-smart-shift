@@ -1,51 +1,43 @@
-# Smart Shift Planner | Retail Analytics
+# Smart Shift Planner | Retail Analytics 
+Analisis Eficiencia en Recursos Humanos
+Optimación y eficiencia. 
 
-Herramienta avanzada de optimización de personal para Store Managers del sector retail.  
-Permite analizar el tráfico de clientes, calcular la plantilla óptima, asignar zonas de trabajo (zoning), cuantificar el impacto financiero de los desajustes y simular escenarios "what-if".  
+
+Herramienta avanzada de optimización de personal para Store Managers del sector retail.
+Permite analizar el tráfico de clientes, calcular la plantilla óptima, asignar zonas de trabajo (zoning), cuantificar el impacto financiero de los desajustes y simular escenarios "what-if".
 Integra benchmarks de gestión de personal y proporciona recomendaciones automáticas basadas en datos.
 
 Desarrollado en Python con Streamlit, Pandas, Plotly y NumPy.
 
----
+Características principales
+Dos modos de análisis: diario (un día) o semanal (vista de 7 días con selector de jornada).
+Cálculo dinámico de personal óptimo por hora a partir del tráfico y la capacidad de atención.
+Mapa de estrés operativo (déficit/exceso de personal) y fuga de ventas (€) por hora.
+Parámetros financieros completos: ticket medio, tasa de conversión, coste laboral, margen bruto, presupuesto de horas.
+Análisis financiero detallado: coste de oportunidad (margen perdido), ROI de la optimización, punto de equilibrio de tráfico, alerta presupuestaria.
+Zoning inteligente: distribución recomendada del personal entre caja, probadores y planta según la plantilla óptima.
+Optimizador de descansos: detección de franjas con exceso de personal para organizar pausas.
+Benchmarks de gestión de personal: indicadores automáticos (ventas por empleado/hora, coste laboral sobre ventas, productividad, cobertura) y campos para datos externos (absentismo, rotación, tiempo de atención, horas extra).
+Simulador de 8 escenarios "What-If":
+Variación del tráfico (%)
+Penalización de la conversión por saturación
+Contratación de refuerzo externo
+Reducción de personal en horas valle
+Ajuste del estándar de servicio (clientes/empleado)
+Cierre temporal de probadores
+Apertura de segunda caja en horas pico
+Comparador de dos estrategias
+Recomendaciones automáticas narrativas basadas en los resultados.
+Expanders educativos con teoría, metodología y visualización de conceptos clave.
+Modo demo con datos sintéticos para exploración inmediata.
+Carga de archivos CSV personalizados.
+Instalación y ejecución
+Requisitos
+Python 3.8 o superior
+pip
+Dependencias
+Las librerías necesarias se listan en requirements.txt:
 
-## Características principales
-
-- **Dos modos de análisis**: diario (un día) o semanal (vista de 7 días con selector de jornada).
-- **Cálculo dinámico** de personal óptimo por hora a partir del tráfico y la capacidad de atención.
-- **Mapa de estrés operativo** (déficit/exceso de personal) y **fuga de ventas** (€) por hora.
-- **Parámetros financieros completos**: ticket medio, tasa de conversión, coste laboral, margen bruto, presupuesto de horas.
-- **Análisis financiero detallado**: coste de oportunidad (margen perdido), ROI de la optimización, punto de equilibrio de tráfico, alerta presupuestaria.
-- **Zoning inteligente**: distribución recomendada del personal entre caja, probadores y planta según la plantilla óptima.
-- **Optimizador de descansos**: detección de franjas con exceso de personal para organizar pausas.
-- **Benchmarks de gestión de personal**: indicadores automáticos (ventas por empleado/hora, coste laboral sobre ventas, productividad, cobertura) y campos para datos externos (absentismo, rotación, tiempo de atención, horas extra).
-- **Simulador de 8 escenarios "What-If"**:
-  1. Variación del tráfico (%)
-  2. Penalización de la conversión por saturación
-  3. Contratación de refuerzo externo
-  4. Reducción de personal en horas valle
-  5. Ajuste del estándar de servicio (clientes/empleado)
-  6. Cierre temporal de probadores
-  7. Apertura de segunda caja en horas pico
-  8. Comparador de dos estrategias
-- **Recomendaciones automáticas** narrativas basadas en los resultados.
-- **Expanders educativos** con teoría, metodología y visualización de conceptos clave.
-- **Modo demo** con datos sintéticos para exploración inmediata.
-- **Carga de archivos CSV** personalizados.
-
----
-
-## Instalación y ejecución
-
-### Requisitos
-
-- Python 3.8 o superior
-- pip
-
-### Dependencias
-
-Las librerías necesarias se listan en `requirements.txt`:
-
-```txt
 streamlit
 pandas
 plotly
@@ -270,4 +262,3 @@ Zoning: modificar la función asignar_zonas().
 Estilos: los colores y textos son fácilmente ajustables.
 
 Benchmarks: las referencias numéricas están en el código y pueden actualizarse según el sector.
-
